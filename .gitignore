@@ -1,0 +1,39 @@
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local environments
+.venv/
+venv/
+env/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+*.spec.bak
+
+# Runtime state and logs
+*.log
+*.pid
+scratchpad/
+
+# Packaging secrets / local signing material
+*.p12
+*.cer
+*.crt
+*.key
+*.mobileprovision
+
+# Editor state
+.idea/
+.vscode/
