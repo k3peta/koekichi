@@ -39,6 +39,7 @@ from koekichi.macos_perms import accessibility_trusted, input_monitoring_granted
 from koekichi.macos_tsm import prime_keyboard_layout
 from koekichi.paths import ensure_config_dir, is_setup_done
 from koekichi.prompt import build_prompt
+from koekichi.ui.dictionary_editor import DictionaryEditorDialog
 from koekichi.ui.firstrun import FirstRunWizard
 from koekichi.ui.overlay import Overlay
 from koekichi.ui.settings import SettingsDialog
@@ -116,6 +117,7 @@ class AppController(QObject):
             on_retry_engine_load=self._retry_engine_load,
             on_quit=self._quit,
             on_open_settings=self._open_settings,
+            on_open_dictionary_editor=self._open_dictionary_editor,
         )
 
         # Audio (SPEC §6.0: pass full audio config)
@@ -334,6 +336,13 @@ class AppController(QObject):
         """Open the hotkey settings dialog (SPEC §11.3)."""
         dialog = SettingsDialog(
             self.config.get("hotkey", {}), on_save=self._apply_hotkey_config
+        )
+        dialog.exec()
+
+    def _open_dictionary_editor(self) -> None:
+        """Open the dictionary editor dialog (SPEC §11.5)."""
+        dialog = DictionaryEditorDialog(
+            on_save=self._reload_dictionary
         )
         dialog.exec()
 

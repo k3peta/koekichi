@@ -107,6 +107,7 @@ class Tray(QSystemTrayIcon):
         on_retry_engine_load: Callable[[], None] | None = None,
         on_quit: Callable[[], None] | None = None,
         on_open_settings: Callable[[], None] | None = None,
+        on_open_dictionary_editor: Callable[[], None] | None = None,
         parent=None,
     ):
         super().__init__(parent)
@@ -124,6 +125,7 @@ class Tray(QSystemTrayIcon):
         self._on_retry_engine_load = on_retry_engine_load
         self._on_quit = on_quit
         self._on_open_settings = on_open_settings
+        self._on_open_dictionary_editor = on_open_dictionary_editor
 
         self._menu = QMenu()
 
@@ -150,6 +152,10 @@ class Tray(QSystemTrayIcon):
         open_dict_action = QAction("辞書を開く", self._menu)
         open_dict_action.triggered.connect(lambda: open_path(get_dictionary_file()))
         self._menu.addAction(open_dict_action)
+
+        edit_dict_action = QAction("辞書を編集…", self._menu)
+        edit_dict_action.triggered.connect(self._handle_open_dictionary_editor)
+        self._menu.addAction(edit_dict_action)
 
         reload_dict_action = QAction("辞書を再読み込み", self._menu)
         reload_dict_action.triggered.connect(self._handle_reload_dictionary)
@@ -237,3 +243,7 @@ class Tray(QSystemTrayIcon):
     def _handle_open_settings(self) -> None:
         if self._on_open_settings is not None:
             self._on_open_settings()
+
+    def _handle_open_dictionary_editor(self) -> None:
+        if self._on_open_dictionary_editor is not None:
+            self._on_open_dictionary_editor()
