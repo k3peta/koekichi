@@ -113,7 +113,6 @@ class AppController(QObject):
             config,
             on_toggle_recording=self._on_toggle,
             on_enabled_changed=self._on_enabled_changed,
-            on_reload_dictionary=self._reload_dictionary,
             on_retry_engine_load=self._retry_engine_load,
             on_quit=self._quit,
             on_open_settings=self._open_settings,

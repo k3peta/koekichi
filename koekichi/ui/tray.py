@@ -27,7 +27,6 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
 from koekichi.config import get_config_file
-from koekichi.dictionary import get_dictionary_file
 from koekichi.paths import get_config_dir
 
 logger = logging.getLogger(__name__)
@@ -103,7 +102,6 @@ class Tray(QSystemTrayIcon):
         config: dict[str, Any],
         on_toggle_recording: Callable[[], None] | None = None,
         on_enabled_changed: Callable[[bool], None] | None = None,
-        on_reload_dictionary: Callable[[], None] | None = None,
         on_retry_engine_load: Callable[[], None] | None = None,
         on_quit: Callable[[], None] | None = None,
         on_open_settings: Callable[[], None] | None = None,
@@ -121,7 +119,6 @@ class Tray(QSystemTrayIcon):
 
         self._on_toggle_recording = on_toggle_recording
         self._on_enabled_changed = on_enabled_changed
-        self._on_reload_dictionary = on_reload_dictionary
         self._on_retry_engine_load = on_retry_engine_load
         self._on_quit = on_quit
         self._on_open_settings = on_open_settings
@@ -149,17 +146,9 @@ class Tray(QSystemTrayIcon):
         open_config_action.triggered.connect(lambda: open_path(get_config_file()))
         self._menu.addAction(open_config_action)
 
-        open_dict_action = QAction("辞書を開く", self._menu)
-        open_dict_action.triggered.connect(lambda: open_path(get_dictionary_file()))
-        self._menu.addAction(open_dict_action)
-
         edit_dict_action = QAction("辞書を編集…", self._menu)
         edit_dict_action.triggered.connect(self._handle_open_dictionary_editor)
         self._menu.addAction(edit_dict_action)
-
-        reload_dict_action = QAction("辞書を再読み込み", self._menu)
-        reload_dict_action.triggered.connect(self._handle_reload_dictionary)
-        self._menu.addAction(reload_dict_action)
 
         # SPEC §11.2: Retry engine load menu item
         retry_engine_action = QAction("認識モデルを再読み込み", self._menu)
@@ -227,10 +216,6 @@ class Tray(QSystemTrayIcon):
     def _handle_enabled_toggled(self, checked: bool) -> None:
         if self._on_enabled_changed is not None:
             self._on_enabled_changed(checked)
-
-    def _handle_reload_dictionary(self) -> None:
-        if self._on_reload_dictionary is not None:
-            self._on_reload_dictionary()
 
     def _handle_retry_engine_load(self) -> None:
         if self._on_retry_engine_load is not None:
