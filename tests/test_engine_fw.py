@@ -311,11 +311,15 @@ class TestDeviceResolution:
         assert mock_ctor.call_args.kwargs["compute_type"] == "int8"
         assert engine.resolved_device == "cpu"
 
-    def test_real_cuda_available_is_false_on_this_machine(self) -> None:
-        """Sanity check: no NVIDIA GPU here, so the real probe returns False."""
+    def test_real_cuda_probe_returns_bool(self) -> None:
+        """Sanity check: the real probe runs without raising and returns a bool.
+
+        The actual value depends on the machine (True on NVIDIA GPU boxes,
+        False elsewhere), so only the contract is asserted here.
+        """
         from koekichi.engine.fw import _cuda_available
 
-        assert _cuda_available() is False
+        assert isinstance(_cuda_available(), bool)
 
 
 class TestPromptSuppressionForDistil:
