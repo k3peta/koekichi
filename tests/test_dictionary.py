@@ -272,3 +272,93 @@ class TestMtimeReload:
         assert loaded is not None
         assert get_dictionary_words(loaded) == ["B"]
         assert mtime2 != mtime1
+
+
+class TestLegacyKoeKichiWinMigration:
+    """A KoeKichiWin-era dictionary.json in the shared %APPDATA%/KoeKichi
+    folder must be converted on load, not treated as empty (and later
+    clobbered by the editor's save)."""
+
+    @pytest.fixture
+    def dict_file(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+        """Point the dictionary module at a temp dictionary.json."""
+        path = tmp_path / "dictionary.json"
+        monkeypatch.setattr(dict_module, "get_dictionary_file", lambda: path)
+        return path
+
+    def _write_legacy(self, path: Path, replacements: list) -> None:
+        path.write_text(
+            json.dumps(
+                {"version": 1, "replacements": replacements}, ensure_ascii=False
+            ),
+            encoding="utf-8",
+        )
+
+    def test_legacy_replacements_become_entries(self, dict_file: Path) -> None:
+        """Literal replacements are grouped by their "to" word."""
+        self._write_legacy(
+            dict_file,
+            [
+                {"from": "\u58f0\u57fa\u5730", "to": "\u58f0\u5409", "mode": "literal"},
+                {"from": "\u58f0\u30ad\u30c1", "to": "\u58f0\u5409", "mode": "literal"},
+                {"from": "\u30aa\u30fc\u30d7\u30f3AI", "to": "OpenAI", "mode": "literal"},
+            ],
+        )
+        loaded = load_dictionary()
+        assert loaded == {
+            "entries": [
+                {
+                    "word": "\u58f0\u5409",
+                    "reading": "",
+                    "corrections": ["\u58f0\u57fa\u5730", "\u58f0\u30ad\u30c1"],
+                },
+                {"word": "OpenAI", "reading": "", "corrections": ["\u30aa\u30fc\u30d7\u30f3AI"]},
+            ]
+        }
+
+    def test_migration_persists_and_backs_up(self, dict_file: Path) -> None:
+        """The legacy file is backed up, then rewritten in the new schema."""
+        self._write_legacy(dict_file, [{"from": "a", "to": "b", "mode": "literal"}])
+        load_dictionary()
+        backup = dict_file.with_name("dictionary.json.koekichiwin.bak")
+        assert backup.exists()
+        assert json.loads(backup.read_text(encoding="utf-8"))["version"] == 1
+        on_disk = json.loads(dict_file.read_text(encoding="utf-8"))
+        assert on_disk == {
+            "entries": [{"word": "b", "reading": "", "corrections": ["a"]}]
+        }
+
+    def test_non_literal_modes_are_skipped(self, dict_file: Path) -> None:
+        """Only literal replacements can be expressed as corrections."""
+        self._write_legacy(
+            dict_file,
+            [
+                {"from": "x+", "to": "y", "mode": "regex"},
+                {"from": "a", "to": "b", "mode": "literal"},
+            ],
+        )
+        loaded = load_dictionary()
+        assert loaded == {
+            "entries": [{"word": "b", "reading": "", "corrections": ["a"]}]
+        }
+
+    def test_current_schema_untouched(self, dict_file: Path) -> None:
+        """A current-schema file is returned as-is, with no backup created."""
+        current = {"entries": [{"word": "w", "reading": "", "corrections": []}]}
+        dict_file.write_text(json.dumps(current), encoding="utf-8")
+        assert load_dictionary() == current
+        assert not dict_file.with_name(
+            "dictionary.json.koekichiwin.bak"
+        ).exists()
+
+    def test_corrections_applied_after_migration(self, dict_file: Path) -> None:
+        """Migrated entries feed the normal corrections pipeline."""
+        self._write_legacy(
+            dict_file,
+            [{"from": "\u58f0\u57fa\u5730", "to": "\u58f0\u5409", "mode": "literal"}],
+        )
+        loaded = load_dictionary()
+        assert (
+            apply_corrections("\u58f0\u57fa\u5730\u3092\u8d77\u52d5", loaded)
+            == "\u58f0\u5409\u3092\u8d77\u52d5"
+        )

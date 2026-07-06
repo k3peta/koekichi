@@ -38,7 +38,13 @@ def load_dictionary() -> dict[str, Any]:
     try:
         with open(dict_file, "r", encoding="utf-8") as f:
             loaded = json.load(f)
-        return loaded if isinstance(loaded, dict) else {"entries": []}
+        if not isinstance(loaded, dict):
+            return {"entries": []}
+        if "entries" not in loaded and isinstance(
+            loaded.get("replacements"), list
+        ):
+            return _migrate_legacy_dictionary(loaded, dict_file)
+        return loaded
     except json.JSONDecodeError as e:
         logger.error(f"Failed to parse dictionary.json: {e}. Using empty dictionary.")
         return {"entries": []}
@@ -61,6 +67,53 @@ def save_dictionary(dictionary: dict[str, Any]) -> None:
         logger.info(f"Saved dictionary to {dict_file}")
     except Exception as e:
         logger.error(f"Failed to save dictionary: {e}")
+
+
+def _migrate_legacy_dictionary(
+    loaded: dict[str, Any], dict_file: Path
+) -> dict[str, Any]:
+    """Convert a KoeKichiWin-era dictionary.json to the current schema.
+
+    KoeKichiWin (the Windows-only predecessor app) stored its data in the
+    same %APPDATA%/KoeKichi folder, using {"replacements": [{"from", "to",
+    "mode"}]}. Loading that file as-is would show an empty editor table and
+    a subsequent save would silently destroy the user's replacements, so
+    the old file is backed up and converted: each literal replacement
+    becomes a correction on an entry for its "to" word. Non-literal modes
+    have no equivalent here and are dropped (still present in the backup).
+    """
+    entries: list[dict[str, Any]] = []
+    by_word: dict[str, dict[str, Any]] = {}
+    for rep in loaded.get("replacements", []):
+        if not isinstance(rep, dict) or rep.get("mode", "literal") != "literal":
+            continue
+        src = str(rep.get("from", "")).strip()
+        dst = str(rep.get("to", "")).strip()
+        if not src or not dst:
+            continue
+        entry = by_word.get(dst)
+        if entry is None:
+            entry = {"word": dst, "reading": "", "corrections": []}
+            by_word[dst] = entry
+            entries.append(entry)
+        if src not in entry["corrections"]:
+            entry["corrections"].append(src)
+    migrated: dict[str, Any] = {"entries": entries}
+    backup = dict_file.with_name(dict_file.name + ".koekichiwin.bak")
+    try:
+        if not backup.exists():
+            backup.write_bytes(dict_file.read_bytes())
+    except Exception as e:
+        # Without a backup we must not overwrite the legacy file; the
+        # migrated dict still works in memory for this session.
+        logger.error(f"Dictionary migration backup failed, not persisting: {e}")
+        return migrated
+    save_dictionary(migrated)
+    logger.info(
+        f"Migrated legacy KoeKichiWin dictionary ({len(entries)} entries); "
+        f"original kept as {backup.name}"
+    )
+    return migrated
 
 
 def dictionary_mtime() -> float:
