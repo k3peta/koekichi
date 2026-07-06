@@ -245,3 +245,9 @@ bash packaging/make_signing_cert.sh
 ## ライセンス
 
 MIT License — 詳細は [LICENSE](LICENSE) を参照してください。
+
+### 依存ライブラリ・モデルのライセンスに関する注意
+
+- 本体コードは MIT ですが、依存ライブラリの一部は **LGPLv3** です: **PySide6 (Qt)**、**pynput**。本アプリはこれらを動的リンク(共有ライブラリ)の形で利用しており、LGPLv3 の要件に沿って配布しています。各ライブラリのライセンス全文は配布物に同梱、または公式リポジトリを参照してください。
+- **音声認識モデルの重み(mlx-community/whisper-large-v3-turbo、kotoba-tech/kotoba-whisper-v2.0-faster 等)は本リポジトリに含まれず、初回起動時に Hugging Face Hub から別途ダウンロードされます。** これらのモデル自体のライセンス・利用条件は、本リポジトリの MIT ライセンスとは別に、各モデルの配布元(Hugging Face のモデルカード等)が定めるものに従います。
+- NVIDIA の CUDA ランタイム(cuBLAS/cuDNN、Windows の GPU オプションで導入)は NVIDIA 独自のライセンスの下で配布される再頒布可能パッケージであり、本リポジトリには同梱されません(ユーザーの明示的な操作で PyPI から別途取得します)。
