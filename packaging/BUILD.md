@@ -95,6 +95,8 @@ dist/KoeKichi.app/Contents/MacOS/KoeKichi &
 
 ## Windows 向けビルド
 
+**配布用の Windows 版は <https://github.com/k3peta/koekichi-win> を正本として管理しています。** この節と `packaging/koekichi-win.spec` は移行前の参考資料として残しています。仲間内配布や GitHub Release に載せる Windows バイナリは、Windows 専用リポジトリ側でビルド・検証してください。
+
 **この Mac 上の開発環境では実行できません**(PyInstaller はターゲット OS 上での
 実行が必要で、クロスビルド非対応)。Windows 実機で以下を行ってください。
 
